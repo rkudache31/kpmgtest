@@ -1,0 +1,107 @@
+#####################################################################################################
+#This stage extracts artifacts and deploy the infrastructure for the shared resources Storage Account
+#####################################################################################################
+name: Finovate-SharedInfrastructureStorageAccounts
+trigger: none 
+resources:
+- repo: self
+pool:
+  vmImage: 'windows-2019' 
+#Finovate-Environments parameter is used to define environments where deployment should be performed
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev']
+
+  - name: TargetRegion
+    type: string
+    default: 'cus'
+    values:
+        - 'cus'
+        - 'euc2'
+
+  - name: Build_Pipeline_Number
+    type: string
+    default: ''
+
+  - name: Build_Release_Number 
+    type: string
+
+stages:
+  #Loops through all the environments defined within the parameter Finovate_Environments
+  - ${{ each env in parameters.Finovate_Environments }}:
+    #########################################
+    #This stage generates execution plan
+    #########################################
+    - stage: terraform_apply_${{ env }}
+      jobs:
+        - job: terraform_plan
+          variables:
+          - template: vars-${{ env }}.yml
+            parameters:
+              Envt: ${{ env }}
+              Region: ${{ parameters.TargetRegion }}
+
+          - name: BackendKey
+            value: 'terraform-shr-${{ env }}-${{ variables.ApplicationCode }}.tfstate'
+
+          steps:
+            - checkout: none
+
+            - task: DownloadBuildArtifacts@0
+              displayName: 'Download plan Artifacts'
+              inputs:
+                buildType: 'specific'
+                project: ${{ variables.DevOps_Project_GUID }}
+                pipeline: ${{ parameters.Build_Pipeline_Number }}
+                buildVersionDownload: 'specific'
+                buildId: ${{ parameters.Build_Release_Number }}
+                downloadType: 'single'
+                artifactName: ${{ variables.ArtifactName }}
+                downloadPath: $(system.ArtifactsDirectory)
+                
+            - task: ExtractFiles@1
+              displayName: Extract terraform Plan Artifacts'
+              inputs:
+                archiveFilePatterns: '$(System.ArtifactDirectory)/${{ variables.ArtifactName }}/${{ parameters.Build_Release_Number }}.tgz'
+                destinationFolder: '$(System.DefaultWorkingDirectory)/'
+                cleanDestinationFolder: false
+                overwriteExistingFiles: true
+
+            - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+               displayName: 'Terraform Installer'
+
+            - task: TerraformCLI@0
+              displayName: 'Terraform Init'
+              inputs:
+                command: 'init'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                ensureBackend: true
+                backendType: azurerm
+                backendServiceArm: ${{ variables.ServiceConnectionName }}
+                backendAzureRmResourceGroupLocation: ${{ variables.BackendGroupLocation }}
+                backendAzureRmResourceGroupName: ${{ variables.BackendGroupName }}
+                backendAzureRmStorageAccountName: ${{ variables.BackendAccountName }}
+                backendAzureRmContainerName: ${{ variables.BackendContainerName }}
+                backendAzureRmKey: ${{ variables.BackendKey }}
+            
+              - task: TerraformCLI@0
+                displayName: 'Terraform validate'
+                inputs:
+                  command: 'validate'
+                
+            - task: TerraformCLI@0
+              displayName: 'Terraform Plan'
+              inputs:
+                command: 'plan'
+                environmentServiceName: ${{ variables.ServiceConnectionName }}
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                commandOptions: '--var-file="${{ variables.TfVarFile }}"'
+
+            - task: TerraformCLI@0
+              displayName: 'Terraform Apply'
+              inputs:
+                command: 'apply'
+                environmentServiceName: ${{ variables.ServiceConnectionName }}
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                commandOptions: '--var-file="${{ variables.TfVarFile }}"'

@@ -1,0 +1,22 @@
+module "ADF" {
+  source                               = "../../Modules/ADF"
+  vnet_resource_group_name             = var.vnet_resource_group_name
+  virtual_network_name                 = var.virtual_network_name
+  pe_subnet_name                       = var.pe_subnet_name
+  sql_mi_name                          = var.sql_mi_name
+  sql_managed_instance_name            = var.sql_managed_instance_name
+  sql_resource_group_name              = var.sql_resource_group_name
+  adf_name                             = var.adf_name
+  location                             = var.location
+  resource_group_name                  = var.resource_group_name
+  managed_virtual_network_enabled      = var.managed_virtual_network_enabled
+  adf_ssis_name                        = var.adf_ssis_name
+  node_size                            = var.node_size
+  number_of_nodes                      = var.number_of_nodes
+  administrator_login                  = var.administrator_login
+  administrator_password               = var.administrator_password
+  pricing_tier                         = var.pricing_tier
+  adfsubnet                            = var.adfsubnet
+  azurerm_data_factory_managed_pe_name = var.azurerm_data_factory_managed_pe_name
+  subresource_name                     = var.subresource_name
+}

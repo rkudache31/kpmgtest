@@ -1,0 +1,20 @@
+###################################################################################
+#This file contains environment specific variables for lower commercial Development
+###################################################################################
+variables:
+  #Common variables
+  ApplicationCode: 'pln'
+
+  #Environment specific variables
+  ServiceConnectionName: 'FinovateServiceConnection'
+  Environment: 'Finovate Development'
+  BackendGroupName: 'finovate-iacstate-rg'
+  BackendGroupLocation: 'East US'
+  BackendAccountName: 'finovateiacstatesa'
+  BackendContainerName: 'finovate-tfstate'
+  TfVarFile: 'shr-${{ parameters.Envt }}-${{ variables.ApplicationCode }}-${{ parameters.Region }}.tfvars'
+  Provision: '/Root/AppServicePlan/'
+  DevOpsPath: '/Terraform/'
+  TimeoutInMinutes: '120'
+  ArtifactName: 'shr-drop-${{ variables.ApplicationCode }}'
+  DevOps_Project_GUID: '0e772c6a-bfb4-457a-8e48-9cfd6a5f8608'

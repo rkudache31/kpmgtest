@@ -1,0 +1,19 @@
+##############################################################################################
+# This file containes environment specific variables for commercial development
+#Variables are injected through template: vars-<EnvironmentName>.yml
+##############################################################################################
+variables:
+    #Environment specific variables
+    Applicationcode: 'sql'
+    ServiceConnectionName: 'FinovateServiceConnection'
+    Environment: 'Finovate Development'
+    BackendGroupName:  'finovate-iacstate-rg'
+    BackendGroupLocation: 'East US'
+    BackendAccountName: 'finovateiacstatesa'
+    BackendContainerName: 'finovate-tfstate'
+    ArtifactName: 'shr-drop-${{ variables.ApplicationCode }}'
+    Provision: '/Root/DatabaseSQLMI/'
+    TfVarFile: 'shr-${{ parameters.Envt }}-${{ variables.Applicationcode }}-${{ parameters.Region }}.tfvars'
+    DevopsPath: '/Terraform/'
+    TimeoutMinutes: '500'
+    DevOps_Project_GUID: '0e772c6a-bfb4-457a-8e48-9cfd6a5f8608'

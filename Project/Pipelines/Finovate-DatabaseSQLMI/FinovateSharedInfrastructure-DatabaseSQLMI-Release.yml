@@ -1,0 +1,120 @@
+#######################################################################################################
+# This stage extracts artifacts and deploy the infrastructure fro the shared resources - DatabaseSQLMI
+#######################################################################################################
+name: Finovate-sharedInfrastructureDatabaseSQLMI
+trigger: none # disable CI triggers.
+resources:
+- repo: self
+pool:
+  vmImage: 'windows-2019'  #Microsoft Hosted-Agent
+
+#Finovate-Environments parameter is used to define environments where deployment should be performed.
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev']
+
+  - name: Build_Release_Number
+    type: string      
+
+  - name: TargetRegion
+    type: string
+    default: 'cus'
+    values:
+        - 'cus'
+        - 'eus2'
+
+  - name: Build_Pipeline_Number
+    type: string
+    default: ''
+
+  - name: Administrator_Login
+    type: string
+
+  - name: Administrator_Password
+    type: string              
+
+stages:
+  #Loops through all the environments defined within the parameter Finovate_Environments.
+  - ${{ each env in parameters.Finovate_Environments }}:
+      ##########################################################################
+      #This stages generates execution plan and Apply
+      ##########################################################################
+    - stage: terraform_apply_${{ env }}
+      jobs:
+        - deployment: terraform_apply
+          variables:
+          - template: vars-${{ env }}.yml
+            parameters:
+              Envt: ${{ env }}
+              Region: ${{ parameters.TargetRegion }}
+
+          - name: Backendkey
+            value:  'terraform-shr-${{ env }}-${{ variables.Applicationcode }}.tfstate'
+
+          continueOnError: false
+          environment:  ${{ variables.Environment }}
+          timeoutInMinutes: ${{ variables.TimeoutInMinutes }}
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                - checkout: none
+
+                - task: DownloadBuildArtifacts@0
+                  displayName:  'Download plan Artifact'
+                  inputs:
+                    buildType:  'specific'
+                    project: ${{ variables.DevOps_Project_GUID }}
+                    pipeline: ${{ parameters.Build_Pipeline_Number }}
+                    buildVersionToDownload: 'specific'
+                    buildId: ${{ parameters.Build_Release_Number }}
+                    downloadType: 'single'
+                    artifactName: ${{ variables.ArtifactName }}
+                    downloadPath: $(System.ArtifactsDirectory)
+
+                - task: ExtractFiles@1
+                  displayName:  'Extract plan artifact'
+                  inputs:
+                    archiveFilePatterns:  '$(System.ArtifactsDirectory)/${{ variables.ArtifactName }}/${{ parameters.Build_Release_Number }}.tgz'
+                    destinationFolder: '$(System.DefaultWorkingDirectory)/'
+                    cleanDestinationFolder: false
+                    overwriteExistingFiles: true                    
+
+                - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+                  displayName:  'Terraform Installer'
+
+                - task: TerraformCLI@0
+                  displayName:  'Terraform Init'
+                  inputs:
+                    command:  'init'
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/${{  variables.Provision }}'
+                    ensureBackend:  true
+                    backendType:  azurerm
+                    backendServiceArm:  ${{ variables.ServiceConnectionName }}
+                    backendAzureRmResourceGroupLocation:  ${{ variables.BackendGroupLocation }}
+                    backendAzureRmResourceGroupName:  ${{ variables.BackendGroupName }}
+                    backendAzureRmStorageAccountName: ${{ variables.BackendAccountName}}
+                    backendAzureRmContainerName: ${{ variables.BackendContainerName}}
+                    backendAzureRMKey:  ${{ variables.BackendKey }}
+
+                - task: TerraformCLI@0
+                  displayName:  'Terraform Validate'
+                  inputs:
+                    command:  'validate'
+
+                - task: TerraformCLI@0
+                  displayName:  'Terraform Plan'
+                  inputs:
+                    command:  'plan'
+                    environmentServiceName: ${{ variables.ServiceConnectionName }}
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                    CommandOptions: '--var-file="${{ variables.TFVarFile }}" -var administrator_password=${{  parameters.Administrator_Password }} -var administrator_login=${{  parameters.Administrator_Login }}'
+
+                - task: TerraformCLI@0
+                  displayName:  'Terraform Apply'
+                  inputs:
+                    command:  'apply'
+                    environmentServiceName: ${{ variables.ServiceConnectionName }}
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                    CommandOptions: '--var-file="${{ variables.TFVarFile }}" -var administrator_password=${{  parameters.Administrator_Password }} -var administrator_login=${{  parameters.Administrator_Login }}'

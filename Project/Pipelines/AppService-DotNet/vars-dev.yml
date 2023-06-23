@@ -1,0 +1,40 @@
+########################################################################
+#This file contains environment specific variables for Commercial Tenant
+#Variables are injected through template: vars-<Environments>.yml
+########################################################################
+variables:
+  #common Variables
+  BuildConfiguration: 'release'
+  BuildPlatform: 'any cpu'
+  ApplicationCode: 'dotnet'
+
+  #Environment specific variables
+  ServiceConnectionName: 'FinovateServiceConnection'
+  Environment: 'Finovate Development'
+  BackendGroupName: 'finovate-iacstate-rg'
+  BackendGroupLocation: 'East US'
+  BackendAccountName: 'finovateiacstatesa'
+  BackendContainerName: 'tfstate'
+  TfVarFile: '${{ variables.ApplicationCode }}-${{ parameters.Envt }}-${{ parameters.Region }}.tfvars'
+  Provision: '/Root/AppService-DotNet/'
+  DevOpsPath: '/Terraform/'
+  TimeoutInMinutes: '120'
+  DevOps_Project_GUID: '0e772c6a-bfb4-457a-8e48-9cfd6a5f8608'
+
+  #Application specific variables
+  ApplicationName: 'Framework'
+  ApplicationConfigPath: ''
+  ApplicationCSProjectPath: ''
+  ApplicationBuildPath: ''
+  ApplicationRootFolder: ''
+  ArtifactName: ''
+  AppServiceName: ''
+  ResourceGroupName: ''
+  Envt: ${{ parameters.Envt }}
+  Region: ${{ parameters.Region }}
+  RedisSessionHost: ''
+  RedisSessionPort: ''
+  RedisSessionSSL: ''
+  DatabaseConnectionString: ${{ parameters.DatabaseConnectionString }}
+  RedisAccessKey: ''
+

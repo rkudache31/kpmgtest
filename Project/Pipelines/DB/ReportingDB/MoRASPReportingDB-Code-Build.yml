@@ -1,0 +1,107 @@
+##################################################################################
+#This pipeline Builds database jobs
+##################################################################################
+name: MoRASP-ReportingData-$(Rev:r)
+trigger: none #Disable CI triggers.
+resources:
+- repo: self
+pool:
+  vmImage: "windows-2019"
+
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev']  #To Do: Eventually all environments['auk', 'dev', 'tst', 'sbx', 'crt', 'prd'] will be defined here.
+
+stages:
+  #Loops through all the environments defined within the parameters Finovate_Environments.
+  - ${{ each env in parameters.Finovate_Environments }}:
+      #################################################################
+      #This stage generates build package into the artifacts library.   
+      #################################################################
+    - stage: Retrieve_Build_Artifacts_${{ env }}
+      jobs:
+        - job:  Create_Build_Artifacts
+          variables:
+          - template:  vars-${{ env }}.yml
+          - group:  MORASPDBConnections-${{ env }}
+
+          steps:
+          - checkout: self
+
+        # Replacing token value
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@5
+            displayName: 'Replace tokens in **/*.sql'
+            inputs:
+              targetFiles: '$(Build.SourcesDirectory)\$(AdhocJobPath)\*.sql'
+              enableTelemetry: false
+
+          #Archiving Adhoc SQL Job
+          - task: ArchiveFiles@2
+            displayName:  "Archive ${{ variables.AdhocJobName }} Artifacts" 
+            inputs:
+              rootFolderorFile: "$(Build.SourceDirectory)/$(AdhocJobPath)"
+              includeRootFolder:  false
+              archiveType:  "Zip"
+              archiveFile:  "$(Build.ArtifactStagingDirectory)/${{ variables.AdhocJobName }}_$(build.buildid).zip" 
+              replaceExistingArchive: true
+
+          # Creating SSIS build Package
+          - task: SSISBuild@1
+            displayName:  "Build ${{ variables.SSISPackageName }}"
+            inputs:
+              projectPath:  "${{ variables.SSISPackageName }}" 
+              stripSensitive: false
+              outputPath: "$(Build.ArtifactStagingDirectory)/${{ variables.SSISPackageName }}_$(build.buildid)"
+
+          # # Replacing token value
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@5
+            displayName:  'Replace tokens in **/*.json'
+            inputs:
+              targetfiles: '$(System.DefaultWorkingDirectory)\$(SSISPackageEnvSet)\*.json'
+              enableTelemetry: false 
+
+          # # Replacing token value
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@5
+            displayName:  'Replace tokens in **/*.sql'
+            inputs:
+              targetfiles: '$(System.DefaultWorkingDirectory)\$(SQLJobPath)\ReportingDB\*.sql'
+              enableTelemetry: false
+
+          #Archiving SSIS Package connection string Env json file
+          - task: ArchiveFiles@2
+            displayName:  "Archive ${{ variables.SSISPackageName }} connection string Env json file" 
+            inputs:
+              rootFolderorFile: "$(System.DefaultWorkingDirectory)/$(SSISPackageEnvSet)"
+              includeRootFolder:  false
+              archiveType:  "Zip"
+              archiveFile:  "$(Build.ArtifactStagingDirectory)/${{ SSISPackageEnvFolder }}_$(build.buildid).zip" 
+              replaceExistingArchive: true  
+
+          #Archiving SSIS Package
+          - task: ArchiveFiles@2
+            displayName:  "Archive ${{ variables.SSISPackageName }} Artifacts" 
+            inputs:
+              rootFolderorFile: "$(Build.ArtifactStagingDirectory)/${{ variable.SSISPackageName }}_$(build.buildid)"
+              includeRootFolder:  false
+              archiveType:  "Zip"
+              archiveFile:  "$(Build.ArtifactStagingDirectory)/${{ variable.SSISPackageName }}_$(build.buildid).zip" 
+              replaceExistingArchive: true 
+
+          #Archiving SQL Job
+          - task: ArchiveFiles@2
+            displayName:  "Archive ${{ variables.ApplicationName }} Artifacts" 
+            inputs:
+              rootFolderorFile: "$(Build.SourcesDirectory)/${{ SQLJobPath }}"
+              includeRootFolder:  false
+              archiveType:  "Zip"
+              archiveFile:  "$(Build.ArtifactStagingDirectory)/${{ variable.SQLJobName }}_$(build.buildid).zip" 
+              replaceExistingArchive: true 
+
+          #Publishing Artifacts (SSIS/Job) 
+          - task: PublishBuildArtifacts@1
+            displayName:  "Publish ${{ variables.ApplicationName }} Artifacts" 
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName:  $(ArtifactName)
+              publishLocation:  "Container"                                                                                      

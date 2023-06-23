@@ -1,0 +1,65 @@
+###############################################################################
+#This pipeline deploys Finovate DotNet application code into Azure app services
+###############################################################################
+name: Finovate-AppServiceDotNet
+trigger: none
+repository:
+- repo: self
+pool:
+  vmImage: 'windows-2019' 
+
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev']
+
+  - name: TargetRegion
+    type: string
+    default: 'cus'
+    values:
+      - 'cus'
+      - 'eus2'
+
+  - name: Build_Pipeline_Number
+    type: string
+    default: ''
+
+  - name: Build_Release_Number
+    type: string
+
+stages:
+  #Loops through all the environments defined within the parameter Finovate_Environments
+  - ${{ each env in parameters.Finovate_Environments }}:
+    #########################################
+    #This stage deploys artifacts to azure
+    #########################################
+    - stage: terraform_apply_${{ env }}
+      jobs:
+        - job: Retrieve_Build_Artifacts
+          variables:
+          - template: vars-${{ env }}.yml
+            parameters: 
+              Envt: ${{ env }}
+              Region: ${{ parameters.TargetRegion }}
+          steps:
+            - checkout: none
+
+            - task: DownloadBuildArtifacts@0
+              displayName: 'Download Artifact'
+              inputs:
+                buildType: 'specific'
+                project: ${{ variables.DevOps_Project_GUID }}
+                pipeline: ${{ parameters.Build_Pipeline_Number }}
+                buildVersionDownload: 'specific'
+                buildId: ${{ parameters.Build_Release_Number }}
+                downloadType: 'single'
+                itemPattern: '**/*.zip'
+                downloadPath: $(system.ArtifactsDirectory) 
+
+            - task: AzurePowerShall@5
+              displayName: 'Deploy Code'
+              inputs:
+                azureSubscription: ${{ variables.ServiceConnectionName }}
+                ScriptType: 'InlineScript'
+                azurePowerShallVersion: 'LatestVersion'
+                Inline: 'Publish-AzWebApp - ResourceGroupName ${{ variables.ResourceGroupName }} -name ${{ variables.AppServiceName }} -ArchivePath $(Build.ArtifactStagingDirectory)/${{ variables.ArtifactName }}/${{ variables.ApplicationName }}_${{ parameters.Build_Release_Number }}.zip -Force -confirm:$false'

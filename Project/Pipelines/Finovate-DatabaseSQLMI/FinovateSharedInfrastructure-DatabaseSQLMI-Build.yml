@@ -1,0 +1,114 @@
+#####################################################################################
+# This pipeline Builds Finovate shared resources - Database SQLMI
+#####################################################################################
+name: Finovate-sharedInfrastructureDatabaseSQLMI-$(Rev:.r)
+trigger: none # disable CI triggers.
+resources:
+- repo: self
+pool:
+  vmImage: 'windows-2019'  #Microsoft Hosted-Agent
+
+#Finovate-Environments parameter is used to define environments where deployment should be performed.
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev'] 
+
+  - name: TargetRegion
+    type: string
+    default: 'cus'
+    values:
+        - 'cus'
+        - 'eus2'
+
+  - name: Administrator_Login
+    type: string
+
+  - name: Administrator_Password
+    type: string    
+
+stages:
+  #Loops through all the environments defined within the parameter Finovate_Environments.
+  - ${{ each env in parameters.Finovate_Environments }}:
+    #   ##########################################################################
+    #   #This stages validates pipelines parameters
+    #   ##########################################################################
+    # - stage: Validate_Parameters
+    #   jobs:
+    #     - job: Validate_Parameters
+    #       steps:
+    #       - checkout: none
+    #       - template: /Devops/shared/Password-policy.yml@self
+              # parameters:
+              #     Administrator:
+      ##########################################################################
+      #This stages generates execution plan
+      ##########################################################################
+    - stage: terraform_plan_${{ env }}
+      jobs:
+        - job: terraform_plan
+          variables:
+          - template: vars-${{ env }}.yml
+            parameters:
+              Envt: ${{ env }}
+              Region: ${{ parameters.TargetRegion }}
+
+          - name: Backendkey
+            value:  'terraform-shr-${{ env }}-${{ variables.Applicationcode }}.tfstate'
+
+          steps:
+            - checkout: self
+
+            - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+              displayName:  'Terraform Installer'
+
+            - task: TerraformCLI@0
+              displayName:  'Terraform Init'
+              inputs:
+                command:  'init'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{variables.DevopsPath}}/${{  variables.Provision }}'
+                ensureBackend:  true
+                backendType:  azurerm
+                backendServiceArm:  ${{ variables.ServiceConnectionName }}
+                backendAzureRmResourceGroupLocation:  ${{ variables.BackendGroupLocation }}
+                backendAzureRmResourceGroupName:  ${{ variables.BackendGroupName }}
+                backendAzureRmStorageAccountName: ${{ variables.BackendAccountName}}
+                backendAzureRmContainerName: ${{ variables.BackendContainerName}}
+                backendAzureRMKey:  ${{ variables.BackendKey }}
+
+            - task: TerraformCLI@0
+              displayName:  'Terraform Validate'
+              inputs:
+                command:  'validate'
+
+            - task: TerraformCLI@0
+              displayName:  'Terraform Plan'
+              inputs:
+                command:  'plan'
+                environmentServiceName: ${{ variables.ServiceConnectionName }}
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{variables.DevopsPath}}/${{  variables.Provision }}'
+                CommandOptions: '-lock=false --var-file="${{ variables.TFVarFile }}" -var administrator_password=${{  parameters.Administrator_Password }} -var administrator_login=${{  parameters.Administrator_Login }}'
+
+            - task: ArchiveFiles@2
+              displayName:  'Archive plan Files'
+              inputs:
+                rootFolderOrFile: '$(Build.SourcesDirectory)/${{ variables.DevopsPath}}' 
+                includeRootFolder: false
+                archiveType: 'tar'
+                tarCompression: 'gz'
+                archiveFile:  '$(Build.ArtifactStagingDirectory)/$(Build.Buildid).tgz'
+                replaceExistingArchive: true
+
+            - task: publishBuildArtifacts@1
+              displayName: 'publish plan Artifacts'
+              inputs:
+                pathtopublish: $(Build.ArtifactStagingDirectory)
+                ArtifactName: ${{ variables.ArtifactName}}
+                publishLocation: 'container'
+
+            - task: DeleteFiles@1
+              displayName: 'Remove Unneeded Files'
+              inputs:
+                contents: |
+                  .terraform
+                    tfplan          

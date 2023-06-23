@@ -1,0 +1,122 @@
+###############################################################################
+#This pipeline deploys Finovate DotNet application code into Azure app services
+###############################################################################
+name: Finovate-AppServiceDotNet-$(Rev:.r)
+trigger: none 
+resources:
+- repo: self
+pool:
+  vmImage: 'windows-latest'  
+
+#Finovate-Environments parameter is used to define environments where deployment should be performed
+parameters:
+  - name: Finovate_Environments
+    type: object
+    default: ['dev']
+
+  - name: TargetRegion
+    type: string
+    default: 'cus'
+    values:
+        - 'cus'
+        - 'euc2'
+
+  - name: DatabaseConnectionString
+    type: string
+
+stages:
+  #Loops through all the environments defined within the parameter Finovate_Environments
+  - ${{ each env in parameters.Finovate_Environments }}:
+    #########################################
+    #This stage builds and publish artifacts
+    #########################################
+    - stage: AppServiceDotNet_build_release_${{ env }}
+      jobs: 
+        - deployment: AppServiceDotNet_build_release
+          continueOnError: false
+          variables:
+          - template: vars-${{ env }}.yml
+            parameters:
+              Envt: ${{ env }}
+              Region: ${{ parameters.TargetRegion }}
+              DatabaseConnectionString: ${{ parameters.DatabaseConnectionString }}
+
+          # - name: AzureadAppName
+          #   ${{ if eq(parameters.TeamNumber, "null") }}:
+          #     value: '${{ env }}-mob-core-app-${{ parameters.TargetRegion }}'
+          #   ${{ if ne(parameters.TeamNumber, "null") }}:
+          #     value: '${{ env }}-mob-core-app-${{ parameters.TargetRegion }}-${{ parameters.Team_Number }}'
+          
+          environment: ${{ variables.Environment }}
+          timeoutInMinutes: ${{ variables.timeoutInMinutes }}
+          strategy:
+            runOnce: 
+              deploy:
+                steps:
+                - checkout: self
+                #Fetching the Azure AD app id for DotNetCore
+                - template: /Devops/Shared/AzureADApplication.yml
+                  parameters: 
+                    variableName: 'CoreAPPIDUrl'
+                    AzureadAppName: ${{ variables.AzureadCoreAppName }}
+                    serviceConnectionName: ${{ variables.ServiceConnectionName }}
+
+      ############################################
+      #Create builds for application
+      #############################################
+
+                - task: NuGetToolInstaller@1
+                  displayName: 'Use Nuget 5.8.x'
+                  inputs: 
+                    versionSpec: 5.8.x
+                
+                - task: NugetCommand@2
+                  displayName: 'NuGet restore'
+                  inputs:
+                    command: custom
+                    arguments: 'restore $(System.DefaultWorkingDirectory)\${{ variables.ApplicationCSProjectPath }} -Verbosity Detailed -NonInteractive -ConfigFile "$(System.DefaultWorkingDirectory)\nuget.config" -MSBuildPath "${{ variables.ApplicationBuildPath }}"'
+
+                - task: DotnetCoreCLI@2
+                  displayName: 'Platform - dotnet restore'
+                  inputs:
+                    command: restore
+                    projects: ${{ variables.ApplicationCSProjectPath }}
+                    feedsToUse: config
+                    nugetConfigPath: nuget.config
+
+                - task: qetza.replacetokens.replacetokens-task.replacetokens@5
+                  displayName: 'Replace tokens in **/Web.Azure.${{ env }}.config'
+                  inputs:
+                    targetFiles: '$(System.DefaultWorkingDirectory)/${{ variables.ApplicationConfigPath }}/Web.Azure.${{ env }}.config'
+                    enableTelemetry: false
+
+                - task: FileTransform@1
+                  displayName: 'Transform Configuration File'
+                  inputs: 
+                    folderPath: $(System.DefaultWorkingDirectory)\${{ variables.ApplicationConfigPath }}
+                    enableXmlTransform: true
+                    filetype: xml
+
+                - task: MSBuild@1
+                  displayName: 'Build Application Solution'
+                  inputs:
+                  solution: '$(Build.SourceDirectory)\${{ variables.ApplicationCSProjectPath }}'
+                  platform: 'AnyCPU'
+                  configuration: 'release'
+                  msbuildArguments: '/P:OutputPath=$(Build.ArtifactStagingDirectory)'
+                  clean: true
+
+                - task: ArchiveFiles@2
+                  displayName: "Zip Web App"
+                  inputs:
+                    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/${{ variables.ApplicationRootFolder }}'
+                    archiveType: "Zip"
+                    archiveFile: "$(Build.ArtifactStagingDirectory)/${{ variables.ApplicationName }}_$(Build.BuildId).zip"
+                    replaceExistingArchive: true
+
+                - task: PublishBuildArtifacts@1
+                  displayName: 'Publish Application Artifacts DotNet'
+                  inputs:
+                    PathToPublish: $(Build.ArtifactStagingDirectory)/${{ variables.ApplicationName }}_$(Build.BuildId).zip"
+                    ArtifactName: ${{ variables.ArtifactName }}
+                    publishLocation: 'Container'
