@@ -4,15 +4,15 @@
 ##############################################################################################
 variables:
   #Environment specific variables
-  Applicationcode: 'key'
-  ServiceConnectionName: 'FinovateServiceConnection'
-  Environment: 'Finovate Development'
-  BackendGroupName: 'finovate-iacstate-rg'
+  Applicationcode: 'red'
+  ServiceConnectionName: 'testServiceConnection'
+  Environment: 'test Development'
+  BackendGroupName: 'test-iacstate-rg'
   BackendGroupLocation: 'East US'
-  BackendAccountName: 'finovateiacstatesa'
-  BackendContainerName: 'finovate-tfstate'
+  BackendAccountName: 'testiacstatesa'
+  BackendContainerName: 'test-tfstate'
   ArtifactName: 'shr-drop-${{ variables.ApplicationCode }}'
-  Provision: '/Root/KeyVault/'
+  Provision: '/Root/RedisCache/'
   TfVarFile: 'shr-${{ parameters.Envt }}-${{ variables.Applicationcode }}-${{ parameters.Region }}.tfvars'
   DevopsPath: '/Terraform/'
   TimeoutInMinutes: '120'

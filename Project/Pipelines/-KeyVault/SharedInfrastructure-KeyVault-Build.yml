@@ -1,16 +1,16 @@
 #####################################################################################
-# This pipeline Builds Finovate shared resources - KeyVault
+# This pipeline Builds test shared resources - KeyVault
 #####################################################################################
-name: Finovate-sharedInfrastructureKeyVault-$(Rev:.r)
+name: test-sharedInfrastructureKeyVault-$(Rev:.r)
 trigger: none # disable CI triggers.
 resources:
 - repo: self
 pool:
   vmImage: 'windows-2019'  #Microsoft Hosted-Agent
 
-#Finovate-Environments parameter is used to define environments where deployment should be performed.
+#test-Environments parameter is used to define environments where deployment should be performed.
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev'] 
 
@@ -22,8 +22,8 @@ parameters:
         - 'eus2'
 
 stages:
-  #Loops through all the environments defined within the parameter Finovate_Environments.
-  - ${{ each env in parameters.Finovate_Environments }}:
+  #Loops through all the environments defined within the parameter test_Environments.
+  - ${{ each env in parameters.test_Environments }}:
     #########################################
     #This stage generates execution plan
     #########################################

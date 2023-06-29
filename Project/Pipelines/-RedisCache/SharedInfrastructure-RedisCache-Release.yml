@@ -1,29 +1,36 @@
-#####################################################################################
-# This stage extracts artifacts and deploy the infrastructure for the shared resources - Network
-#####################################################################################
-name: Finovate-sharedInfrastructureNetwork
+#####################################################################################################
+# This stage extracts artifacts and deploy the infrastructure fro the shared resources - Redis Cache
+#####################################################################################################
+name: test-sharedInfrastructureRedisCache
 trigger: none # disable CI triggers.
 resources:
 - repo: self
 pool:
   vmImage: 'windows-2019'  #Microsoft Hosted-Agent
 
-#Finovate-Environments parameter is used to define environments where deployment should be performed.
+#test-Environments parameter is used to define environments where deployment should be performed.
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev']
 
-  - name: Build_Pipeline_Number
+  - name: TargetRegion
     type: string
-    default: '48'
+    default: 'cus'
+    values:
+        - 'cus'
+        - 'euc2'    
 
   - name: Build_Release_Number
-    type: string      
+    type: string
+
+  - name: Build_Pipeline_Number
+    type: string
+    default: '51'          
 
 stages:
-  #Loops through all the environments defined within the parameter Finovate_Environments.
-  - ${{ each env in parameters.Finovate_Environments }}:
+  #Loops through all the environments defined within the parameter test_Environments.
+  - ${{ each env in parameters.test_Environments }}:
       ##########################################################################
       #This stages generates execution plan and Apply
       ##########################################################################
@@ -36,7 +43,7 @@ stages:
               Envt: ${{ env }}
               Region: ${{ parameters.TargetRegion }}
 
-          - name: Backendkey
+          - name: BackendKey
             value:  'terraform-shr-${{ env }}-${{ variables.Applicationcode }}.tfstate'
 
           continueOnError: false
@@ -96,12 +103,12 @@ stages:
                     command:  'plan'
                     environmentServiceName: ${{ variables.ServiceConnectionName }}
                     workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
-                    CommandOptions: '--var-file="${{ variables.TFVarFile }}"'
+                    CommandOptions: '-lock=false --var-file="${{ variables.TfVarFile }}"'
 
-                - task: TerraformCLI@0
-                  displayName:  'Terraform Apply'
-                  inputs:
-                    command:  'apply'
-                    environmentServiceName: ${{ variables.ServiceConnectionName }}
-                    workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
-                    CommandOptions: '--var-file="${{ variables.TFVarFile }}"'                                  
+                # - task: TerraformCLI@0
+                #   displayName:  'Terraform Apply'
+                #   inputs:
+                #     command:  'apply'
+                #     environmentServiceName: ${{ variables.ServiceConnectionName }}
+                #     workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.Provision }}'
+                #     CommandOptions: '-lock=false --var-file="${{ variables.TFVarFile }}"'                                  

@@ -1,15 +1,15 @@
-#####################################################################################
-# This pipeline Builds Finovate shared resources - Redis Cache
-#####################################################################################
-name: Finovate-sharedInfrastructureRedisCache-$(Rev:.r)
+#######################################################################
+#This pipeline Builds test Shared resources - Storage Account
+#######################################################################
+name: test-SharedInfrastructureStorageAccounts-$(Rev:.r)
 trigger: none 
 resources:
 - repo: self
 pool:
-  vmImage: 'windows-2019'  
-#Finovate-Environments parameter is used to define environments where deployment should be performed
+  vmImage: 'windows-2019' 
+#test-Environments parameter is used to define environments where deployment should be performed.
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev']
 
@@ -21,15 +21,14 @@ parameters:
         - 'euc2'
 
 stages:
-  #Loops through all the environments defined within the parameter Finovate_Environments
-  - ${{ each env in parameters.Finovate_Environments }}:
+  #Loops through all the environments defined within the parameter test_Environments
+  - ${{ each env in parameters.test_Environments }}:
     #########################################
     #This stage generates execution plan
     #########################################
     - stage: terraform_plan_${{ env }}
       jobs:
         - job: terraform_plan
-          displayName: 'IaC Build and Publish'
           variables:
           - template: vars-${{ env }}.yml
             parameters:
@@ -46,10 +45,9 @@ stages:
               displayName: 'Terraform Installer'
             
             - task: TerraformCLI@0
-              displayName: 'Terraform Init'
               inputs:
                 command: 'init'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.DevOpsPath }}/${{ variables.Provision }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.DevopsPath }}/${{ variables.Provision }}'
                 ensureBackend: true
                 backendType: azurerm
                 backendServiceArm: ${{ variables.ServiceConnectionName }}
@@ -69,13 +67,13 @@ stages:
               inputs:
                 command: 'plan'
                 environmentServiceName: ${{ variables.ServiceConnectionName }}
-                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.DevopsPath }}/${{ variables.Provision }}'
-                commandOptions: '-lock=false --var-file="${{ variables.TfVarFile }}"'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/${{ variables.DevOpsPath }}/${{ variables.Provision }}'
+                commandOptions: '--var-file="${{ variables.TfVarFile }}"'
             
             - task: ArchiveFiles@2
               displayName: 'Archive Plan Files'
               inputs:
-                rootFolderOrFile: '$(Build.BinariesDirectory)'
+                rootFolderOrFile: '$(Build.SourceDirectory)/${{ variables.DevOpsPath }}'
                 includeRootFolder: false
                 archiveType: 'tar'
                 tarCompression: 'gz'

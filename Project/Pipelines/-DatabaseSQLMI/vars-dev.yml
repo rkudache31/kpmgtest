@@ -5,12 +5,12 @@
 variables:
     #Environment specific variables
     Applicationcode: 'sql'
-    ServiceConnectionName: 'FinovateServiceConnection'
-    Environment: 'Finovate Development'
-    BackendGroupName:  'finovate-iacstate-rg'
+    ServiceConnectionName: 'testServiceConnection'
+    Environment: 'test Development'
+    BackendGroupName:  'test-iacstate-rg'
     BackendGroupLocation: 'East US'
-    BackendAccountName: 'finovateiacstatesa'
-    BackendContainerName: 'finovate-tfstate'
+    BackendAccountName: 'testiacstatesa'
+    BackendContainerName: 'test-tfstate'
     ArtifactName: 'shr-drop-${{ variables.ApplicationCode }}'
     Provision: '/Root/DatabaseSQLMI/'
     TfVarFile: 'shr-${{ parameters.Envt }}-${{ variables.Applicationcode }}-${{ parameters.Region }}.tfvars'

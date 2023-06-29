@@ -5,12 +5,12 @@
 variables:
   #Environment specific variables
   ApplicationCode: 'sto'
-  ServiceConnectionName: 'FinovateServiceConnection'
-  Environment: 'Finovate Development'
-  BackendGroupName: 'finovate-iacstate-rg'
+  ServiceConnectionName: 'testServiceConnection'
+  Environment: 'test Development'
+  BackendGroupName: 'test-iacstate-rg'
   BackendGroupLocation: 'East US'
-  BackendAccountName: 'finovateiacstatesa'
-  BackendContainerName: 'finovate-tfstate'
+  BackendAccountName: 'testiacstatesa'
+  BackendContainerName: 'test-tfstate'
   TfVarFile: 'shr-${{ parameters.Envt }}-${{ variables.ApplicationCode }}-${{ parameters.Region }}.tfvars'
   Provision: '/Root/StorageAccount/'
   DevOpsPath: '/Terraform/'

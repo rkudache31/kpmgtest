@@ -9,11 +9,11 @@ variables:
   ApplicationCode: 'dotnet'
 
   #Environment specific variables
-  ServiceConnectionName: 'FinovateServiceConnection'
-  Environment: 'Finovate Development'
-  BackendGroupName: 'finovate-iacstate-rg'
+  ServiceConnectionName: 'testServiceConnection'
+  Environment: 'test Development'
+  BackendGroupName: 'test-iacstate-rg'
   BackendGroupLocation: 'East US'
-  BackendAccountName: 'finovateiacstatesa'
+  BackendAccountName: 'testiacstatesa'
   BackendContainerName: 'tfstate'
   TfVarFile: '${{ variables.ApplicationCode }}-${{ parameters.Envt }}-${{ parameters.Region }}.tfvars'
   Provision: '/Root/AppService-DotNet/'

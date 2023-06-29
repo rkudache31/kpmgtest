@@ -10,7 +10,7 @@ pool:
   vmImage: 'windows-2019' # Miscrosoft Hosted-Agent
 
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev']  #To Do: Eventually all environments['auk', 'dev', 'tst', 'sbx', 'crt', 'prd'] will be defined here.
 
@@ -32,8 +32,8 @@ parameters:
     default: 'no'
 
 stages:
-  #Loops through all the environments defined within the parameters Finovate_Environments.
-  - ${{ each env in parameters.Finovate_Environments }}:
+  #Loops through all the environments defined within the parameters test_Environments.
+  - ${{ each env in parameters.test_Environments }}:
       #################################################################
       #This stage genreats build package into the artifacts library.   
       #################################################################

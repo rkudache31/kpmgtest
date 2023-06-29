@@ -1,17 +1,17 @@
 ####################################################################################
-#This pipeline deploys Finovate DotNet core - App service into multiple environments
+#This pipeline deploys test DotNet core - App service into multiple environments
 #by retrieving the build artifact created from the build pipeline
 ####################################################################################
-name: Finovate-AppServiceDotNet
+name: test-AppServiceDotNet
 trigger: none
 repository:
 - repo: self
 pool:
   vmImage: 'windows-2019' 
 
-#Finovate-Environments parameter is used to define environments where deployment should be performed
+#test-Environments parameter is used to define environments where deployment should be performed
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev']
 
@@ -28,9 +28,9 @@ parameters:
 
   - name: Build_Release_Number
     type: string
-#Loops through all the environments defined within the parameter Finovate_Environments
+#Loops through all the environments defined within the parameter test_Environments
 stages:
-  - ${{ each env in parameters.Finovate_Environments }}:
+  - ${{ each env in parameters.test_Environments }}:
     #########################################
     #This stage generates execution apply
     #########################################

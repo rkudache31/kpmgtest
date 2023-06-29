@@ -1,16 +1,16 @@
 ###############################################################################
-#This pipeline deploys Finovate DotNet application code into Azure app services
+#This pipeline deploys test DotNet application code into Azure app services
 ###############################################################################
-name: Finovate-AppServiceDotNet-$(Rev:.r)
+name: test-AppServiceDotNet-$(Rev:.r)
 trigger: none 
 resources:
 - repo: self
 pool:
   vmImage: 'windows-latest'  
 
-#Finovate-Environments parameter is used to define environments where deployment should be performed
+#test-Environments parameter is used to define environments where deployment should be performed
 parameters:
-  - name: Finovate_Environments
+  - name: test_Environments
     type: object
     default: ['dev']
 
@@ -25,8 +25,8 @@ parameters:
     type: string
 
 stages:
-  #Loops through all the environments defined within the parameter Finovate_Environments
-  - ${{ each env in parameters.Finovate_Environments }}:
+  #Loops through all the environments defined within the parameter test_Environments
+  - ${{ each env in parameters.test_Environments }}:
     #########################################
     #This stage builds and publish artifacts
     #########################################
